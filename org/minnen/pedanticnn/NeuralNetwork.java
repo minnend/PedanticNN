@@ -13,7 +13,7 @@ public class NeuralNetwork
   {
     layers = new NeuralLayer[layerSizes.length];
     for (int i = 0; i < layers.length; ++i) {
-      layers[i] = new NeuralLayer(layerSizes[i]);
+      layers[i] = new NeuralLayer(i, layerSizes[i]);
     }
 
     // Create dense connections

@@ -3,12 +3,14 @@ package org.minnen.pedanticnn;
 public class NeuralLayer
 {
   private final Node[] nodes;
+  public final int     index;
 
-  public NeuralLayer(int numNodes)
+  public NeuralLayer(int index, int numNodes)
   {
+    this.index = index;
     nodes = new Node[numNodes];
     for (int i = 0; i < numNodes; ++i) {
-      nodes[i] = new Node();
+      nodes[i] = new Node(this, i);
     }
   }
 
@@ -31,7 +33,7 @@ public class NeuralLayer
       nodes[i].setActivation(data[i]);
     }
   }
-  
+
   public double[] getActivations()
   {
     double[] activations = new double[nodes.length];

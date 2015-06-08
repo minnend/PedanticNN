@@ -8,10 +8,14 @@ public class Node
   public final List<Connection> parents = new ArrayList<Connection>();
   public final List<Connection> kids    = new ArrayList<Connection>();
 
+  public final NeuralLayer      layer;
+  public final int              index;
   public double                 activation, bias;
 
-  public Node()
+  public Node(NeuralLayer layer, int index)
   {
+    this.layer = layer;
+    this.index = index;
     activation = 0.0;
     bias = 0.0;
   }
@@ -32,7 +36,7 @@ public class Node
   public double feedForward()
   {
     double sum = 0.0;
-    for(Connection c : parents) {
+    for (Connection c : parents) {
       assert c.kid == this;
       sum += c.weight * c.parent.activation;
     }
