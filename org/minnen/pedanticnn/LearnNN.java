@@ -6,6 +6,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.minnen.pedanticnn.cost.CrossEntropyCost;
+import org.minnen.pedanticnn.cost.SquaredErrorCost;
+
 public class LearnNN
 {
   private static Dataset LoadData(String filename) throws IOException
@@ -63,10 +66,13 @@ public class LearnNN
     System.err.printf("Training example: %d @ %dD -> %dD\n", dataset.size(), dataset.numInputDims,
         dataset.numOutputDims);
 
-    NeuralNetwork network = new NeuralNetwork(new int[] { dataset.numInputDims, dataset.numOutputDims });
+    NeuralNetwork network = new NeuralNetwork(
+        new int[] { dataset.numInputDims, dataset.numOutputDims },
+        //new SquaredErrorCost());
+        new CrossEntropyCost());
     double learningRate = 0.01;
-    int batchSize = 1000;
-    int numEpochs = 100;
+    int batchSize = 200;
+    int numEpochs = 1000;
     network.train(dataset, learningRate, batchSize, numEpochs);
     evaluate(network.predict(dataset), dataset);
   }

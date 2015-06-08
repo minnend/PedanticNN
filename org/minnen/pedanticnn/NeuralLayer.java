@@ -2,11 +2,12 @@ package org.minnen.pedanticnn;
 
 public class NeuralLayer
 {
-  private final Node[] nodes;
-  public final int     index;
-  public final boolean isOutputLayer;
+  private final Node[]       nodes;
+  public final int           index;
+  public final boolean       isOutputLayer;
+  public final NeuralNetwork network;
 
-  public NeuralLayer(int index, int numNodes, boolean isOutputLayer)
+  public NeuralLayer(int index, int numNodes, boolean isOutputLayer, NeuralNetwork network)
   {
     this.index = index;
     this.isOutputLayer = isOutputLayer;
@@ -14,6 +15,7 @@ public class NeuralLayer
     for (int i = 0; i < numNodes; ++i) {
       nodes[i] = new Node(this, i);
     }
+    this.network = network;
   }
 
   public Node node(int i)
@@ -79,10 +81,10 @@ public class NeuralLayer
     if (!isOutputLayer) {
       throw new UnsupportedOperationException("Can't get cost from an internal (non-output) layer.");
     }
-    
+
     double cost = 0.0;
-    for(int i=0; i<size(); ++i) {
-      cost += nodes[i].cost(example.expected[i]);
+    for (int i = 0; i < size(); ++i) {      
+      cost += network.costFunction.f(nodes[i].activation, example.expected[i]);
     }
     return cost;
   }

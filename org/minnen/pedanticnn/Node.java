@@ -3,6 +3,8 @@ package org.minnen.pedanticnn;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.minnen.pedanticnn.cost.CostFunction;
+
 public class Node
 {
   public final List<Connection> parents = new ArrayList<Connection>();
@@ -49,26 +51,27 @@ public class Node
   public void feedForward()
   {
     // Our activation is a linear function of parent activations.
-    double z = bias;
+    weightedInput = bias;
     for (Connection c : parents) {
       assert c.kid == this;
-      z += c.weight * c.parent.activation;
-    }
-    weightedInput = z;
-    activation = sigmoid(z);
+      weightedInput += c.weight * c.parent.activation;
+    }    
+    activation = MathUtils.sigmoid(weightedInput);
   }
 
   public void backprop(double expected)
   {
     double error;
     if (isOutputNode()) {
-      error = costDeriv(expected) * sigmoidDeriv(weightedInput);
+      CostFunction cf = layer.network.costFunction;
+      error = cf.deriv(activation, expected, weightedInput);
     } else {
+      assert false;
       error = 0.0; // TODO
     }
 
     gradBias += error;
-    for (Connection c : parents) {      
+    for (Connection c : parents) {
       c.gradWeight += c.parent.activation * error;
     }
   }
@@ -76,32 +79,8 @@ public class Node
   public void updateParams(double learningRate)
   {
     bias -= learningRate * gradBias;
-    for (Connection c : parents) {      
-      c.weight -= learningRate * c.gradWeight;      
+    for (Connection c : parents) {
+      c.weight -= learningRate * c.gradWeight;
     }
-  }
-
-  public double cost(double expected)
-  {
-    // TODO support other cost functions.
-    double diff = expected - activation;
-    return 0.5 * diff * diff;
-  }
-
-  public double costDeriv(double expected)
-  {
-    // TODO support other cost functions.
-    return activation - expected;
-  }
-
-  public static double sigmoid(double x)
-  {
-    return 1.0 / (1.0 + Math.exp(-x));
-  }
-
-  public static double sigmoidDeriv(double x)
-  {
-    double s = sigmoid(x);
-    return s * (1.0 - s);
   }
 }

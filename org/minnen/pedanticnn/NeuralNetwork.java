@@ -2,17 +2,21 @@ package org.minnen.pedanticnn;
 
 import java.util.Random;
 
+import org.minnen.pedanticnn.cost.CostFunction;
+
 public class NeuralNetwork
 {
   public static final Random rng = new Random();
 
   public final NeuralLayer[] layers;
+  public CostFunction costFunction;
 
-  public NeuralNetwork(int[] layerSizes)
+  public NeuralNetwork(int[] layerSizes, CostFunction costFunction)
   {
+    this.costFunction = costFunction;
     layers = new NeuralLayer[layerSizes.length];
     for (int i = 0; i < layers.length; ++i) {
-      layers[i] = new NeuralLayer(i, layerSizes[i], i == layers.length - 1);
+      layers[i] = new NeuralLayer(i, layerSizes[i], i == layers.length - 1, this);
     }
 
     // Create dense connections
