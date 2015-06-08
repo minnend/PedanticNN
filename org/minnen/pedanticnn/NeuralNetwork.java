@@ -9,7 +9,7 @@ public class NeuralNetwork
   public static final Random rng = new Random();
 
   public final NeuralLayer[] layers;
-  public CostFunction costFunction;
+  public CostFunction        costFunction;
 
   public NeuralNetwork(int[] layerSizes, CostFunction costFunction)
   {
@@ -64,10 +64,12 @@ public class NeuralNetwork
       for (int i = 0; i < N; ++i) {
         backprop(dataset.get(i));
         if (i % sizeMiniBatch == sizeMiniBatch - 1 || i == N - 1) {
-          System.out.printf("Epoch.batch = %d.%d\n", epoch + 1, miniBatchIndex + 1);
           ++miniBatchIndex;
           updateParams(learningRate);
-          LearnNN.evaluate(predict(dataset), dataset); // TODO(dminnen) use evaluation class
+          LearnNN.evaluate(String.format("%d.%d", epoch + 1, miniBatchIndex + 1), predict(dataset), dataset); // TODO(dminnen)
+                                                                                                              // use
+                                                                                                              // evaluation
+                                                                                                              // class
           resetForLearning();
         }
       }
@@ -108,7 +110,7 @@ public class NeuralNetwork
     for (int l = 1; l < layers.length; ++l) {
       layers[l].feedForward();
     }
-    
+
     return getOutputLayer().getCost(example);
   }
 
@@ -118,8 +120,9 @@ public class NeuralNetwork
     double[] output = getOutputLayer().getActivations();
     int iBest = 0;
     for (int i = 1; i < output.length; ++i) {
-      if (output[i] > iBest)
+      if (output[i] > output[iBest]) {
         iBest = i;
+      }
     }
     return new Prediction(iBest, output, cost);
   }

@@ -55,7 +55,7 @@ public class Node
     for (Connection c : parents) {
       assert c.kid == this;
       weightedInput += c.weight * c.parent.activation;
-    }    
+    }
     activation = MathUtils.sigmoid(weightedInput);
   }
 
