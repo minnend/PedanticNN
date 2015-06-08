@@ -44,15 +44,16 @@ public class LearnNN
   public static void evaluate(Prediction[] preds, Dataset dataset)
   {
     double cost = 0.0;
-    int nc = 0, n = dataset.size();
-    for (int i = 0; i < n; ++i) {
+    int nc = 0;
+    final int N = dataset.size();
+    for (int i = 0; i < N; ++i) {
       // System.err.printf("%d: %d vs %d\n", i, preds[i], examples.get(i).label);
       if (dataset.get(i).label == preds[i].label) {
         ++nc;
       }
       cost += preds[i].cost;
     }
-    System.out.printf("Cost=%f   Accuracy: %d / %d = %.2f%%\n", cost, nc, n, 100.0 * nc / n);
+    System.out.printf("Cost=%f   Accuracy: %d / %d = %.2f%%\n", cost, nc, N, 100.0 * nc / N);
   }
 
   public static void main(String[] args) throws IOException
@@ -63,9 +64,9 @@ public class LearnNN
         dataset.numOutputDims);
 
     NeuralNetwork network = new NeuralNetwork(new int[] { dataset.numInputDims, dataset.numOutputDims });
-    double learningRate = 0.1;
-    int batchSize = 10;
-    int numEpochs = 1;
+    double learningRate = 0.01;
+    int batchSize = 1000;
+    int numEpochs = 100;
     network.train(dataset, learningRate, batchSize, numEpochs);
     evaluate(network.predict(dataset), dataset);
   }

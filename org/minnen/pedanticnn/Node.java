@@ -35,6 +35,9 @@ public class Node
   public void resetForLearning()
   {
     gradBias = 0.0;
+    for (Connection c : parents) {
+      c.gradWeight = 0.0;
+    }
   }
 
   public boolean isOutputNode()
@@ -65,15 +68,17 @@ public class Node
     }
 
     gradBias += error;
+    for (Connection c : parents) {      
+      c.gradWeight += c.parent.activation * error;
+    }
   }
 
   public void updateParams(double learningRate)
   {
-    if (Math.abs(gradBias) > 1e-6) {
-      //System.out.printf("Node %d.%d: gradBias=%f  Bias: %f -> %f\n",
-      //    layer.index, index, gradBias, bias, bias - learningRate * gradBias);
-      bias -= learningRate * gradBias;
-    }    
+    bias -= learningRate * gradBias;
+    for (Connection c : parents) {      
+      c.weight -= learningRate * c.gradWeight;      
+    }
   }
 
   public double cost(double expected)
