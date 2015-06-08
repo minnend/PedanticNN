@@ -10,14 +10,14 @@ public class Node
 
   public final NeuralLayer      layer;
   public final int              index;
-  public double                 activation, bias;
+  public double                 weightedInput, activation, bias;
+
+  private double                gradBias;
 
   public Node(NeuralLayer layer, int index)
   {
     this.layer = layer;
     this.index = index;
-    activation = 0.0;
-    bias = 0.0;
   }
 
   public void connect(Node kid)
@@ -32,20 +32,71 @@ public class Node
     this.activation = activation;
   }
 
-  /** Calculate activation from parents. */
-  public double feedForward()
+  public void resetForLearning()
   {
-    double sum = 0.0;
+    gradBias = 0.0;
+  }
+
+  public boolean isOutputNode()
+  {
+    return layer.isOutputLayer;
+  }
+
+  /** Calculate activation from parents. */
+  public void feedForward()
+  {
+    // Our activation is a linear function of parent activations.
+    double z = bias;
     for (Connection c : parents) {
       assert c.kid == this;
-      sum += c.weight * c.parent.activation;
+      z += c.weight * c.parent.activation;
     }
-    activation = sigmoid(sum + bias);
-    return activation;
+    weightedInput = z;
+    activation = sigmoid(z);
+  }
+
+  public void backprop(double expected)
+  {
+    double error;
+    if (isOutputNode()) {
+      error = costDeriv(expected) * sigmoidDeriv(weightedInput);
+    } else {
+      error = 0.0; // TODO
+    }
+
+    gradBias += error;
+  }
+
+  public void updateParams(double learningRate)
+  {
+    if (Math.abs(gradBias) > 1e-6) {
+      //System.out.printf("Node %d.%d: gradBias=%f  Bias: %f -> %f\n",
+      //    layer.index, index, gradBias, bias, bias - learningRate * gradBias);
+      bias -= learningRate * gradBias;
+    }    
+  }
+
+  public double cost(double expected)
+  {
+    // TODO support other cost functions.
+    double diff = expected - activation;
+    return 0.5 * diff * diff;
+  }
+
+  public double costDeriv(double expected)
+  {
+    // TODO support other cost functions.
+    return activation - expected;
   }
 
   public static double sigmoid(double x)
   {
     return 1.0 / (1.0 + Math.exp(-x));
+  }
+
+  public static double sigmoidDeriv(double x)
+  {
+    double s = sigmoid(x);
+    return s * (1.0 - s);
   }
 }

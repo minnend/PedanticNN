@@ -8,50 +8,65 @@ import java.util.List;
 
 public class LearnNN
 {
-  private static List<Example> LoadData(String filename) throws IOException
+  private static Dataset LoadData(String filename) throws IOException
   {
-    List<Example> examples = new ArrayList<Example>();
-
     try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
       reader.readLine(); // skip header
+
+      List<Integer> labels = new ArrayList<Integer>();
+      List<double[]> inputs = new ArrayList<double[]>();
+      int maxLabel = -1;
 
       String line;
       while ((line = reader.readLine()) != null) {
         String[] fields = line.split(",");
+
+        // Load label.
         int label = Integer.parseInt(fields[0]);
+        labels.add(label);
+        if (label > maxLabel) {
+          maxLabel = label;
+        }
+
+        // Load feature vector.
         double[] data = new double[fields.length - 1];
         for (int i = 0; i < data.length; ++i) {
-          int v = Integer.parseInt(fields[i + 1]);          
-          data[i] = v / 255.0;          
+          int v = Integer.parseInt(fields[i + 1]);
+          data[i] = v / 255.0;
         }
-        examples.add(new Example(label, data));
+        inputs.add(data);
       }
-    }
 
-    return examples;
+      return new Dataset(labels, inputs, maxLabel);
+    }
   }
-  
-  private static void evaluate(int[] preds, List<Example> examples) {
-    int nc = 0, n = examples.size();    
-    for (int i=0; i<n; ++i) {
+
+  public static void evaluate(Prediction[] preds, Dataset dataset)
+  {
+    double cost = 0.0;
+    int nc = 0, n = dataset.size();
+    for (int i = 0; i < n; ++i) {
       // System.err.printf("%d: %d vs %d\n", i, preds[i], examples.get(i).label);
-      if (examples.get(i).label == preds[i]) ++nc;      
-    }    
-    System.out.printf("%d / %d = %.2f%%\n", nc,  n, 100.0 * nc / n);
+      if (dataset.get(i).label == preds[i].label) {
+        ++nc;
+      }
+      cost += preds[i].cost;
+    }
+    System.out.printf("Cost=%f   Accuracy: %d / %d = %.2f%%\n", cost, nc, n, 100.0 * nc / n);
   }
 
   public static void main(String[] args) throws IOException
   {
     String trainFile = args[0];
-    List<Example> examples = LoadData(trainFile);
-    final int D = examples.get(0).numDims();
-    System.err.printf("Training example: %d @ %dD\n", examples.size(), D);
+    Dataset dataset = LoadData(trainFile);
+    System.err.printf("Training example: %d @ %dD -> %dD\n", dataset.size(), dataset.numInputDims,
+        dataset.numOutputDims);
 
-    NeuralNetwork network = new NeuralNetwork(new int[]{ D, 10 });
-    double[] output = network.getOutput();    
-    
-    network.train(examples);
-    int[] preds = network.predict(examples);       
-    evaluate(preds, examples);    
+    NeuralNetwork network = new NeuralNetwork(new int[] { dataset.numInputDims, dataset.numOutputDims });
+    double learningRate = 0.1;
+    int batchSize = 10;
+    int numEpochs = 1;
+    network.train(dataset, learningRate, batchSize, numEpochs);
+    evaluate(network.predict(dataset), dataset);
   }
 }

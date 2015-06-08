@@ -1,6 +1,5 @@
 package org.minnen.pedanticnn;
 
-import java.util.List;
 import java.util.Random;
 
 public class NeuralNetwork
@@ -13,7 +12,7 @@ public class NeuralNetwork
   {
     layers = new NeuralLayer[layerSizes.length];
     for (int i = 0; i < layers.length; ++i) {
-      layers[i] = new NeuralLayer(i, layerSizes[i]);
+      layers[i] = new NeuralLayer(i, layerSizes[i], i == layers.length - 1);
     }
 
     // Create dense connections
@@ -48,12 +47,55 @@ public class NeuralNetwork
     return output;
   }
 
-  public void train(List<Example> examples)
+  public void train(Dataset dataset, double learningRate, int sizeMiniBatch, int numEpochs)
   {
-    // TODO
+    final int N = dataset.size();
+    for (int epoch = 0; epoch < numEpochs; ++epoch) {
+      // Randomize training data.
+      dataset.shuffleExamples();
+
+      // Run mini-batches.
+      int miniBatchIndex = 0;
+      resetForLearning();
+      for (int i = 0; i < N; ++i) {
+        backprop(dataset.get(i));
+        if (i % sizeMiniBatch == sizeMiniBatch - 1 || i == N - 1) {
+          System.out.printf("Epoch.batch = %d.%d\n", epoch + 1, miniBatchIndex + 1);
+          ++miniBatchIndex;
+          updateParams(learningRate);
+          LearnNN.evaluate(predict(dataset), dataset); // TODO(dminnen) use evaluation class
+          resetForLearning();
+        }
+      }
+    }
   }
 
-  public void feedForward(Example example)
+  private void resetForLearning()
+  {
+    for (NeuralLayer layer : layers) {
+      layer.resetForLearning();
+    }
+  }
+
+  private void backprop(Example example)
+  {
+    // Push example through network.
+    feedForward(example);
+
+    // Update each layer starting with the output.
+    for (int l = layers.length - 1; l >= 0; --l) {
+      layers[l].backprop(example);
+    }
+  }
+
+  private void updateParams(double learningRate)
+  {
+    for (NeuralLayer layer : layers) {
+      layer.updateParams(learningRate);
+    }
+  }
+
+  public double feedForward(Example example)
   {
     // Initialize input layer.
     layers[0].setActivations(example.data);
@@ -62,25 +104,27 @@ public class NeuralNetwork
     for (int l = 1; l < layers.length; ++l) {
       layers[l].feedForward();
     }
+    
+    return getOutputLayer().getCost(example);
   }
 
-  public int predict(Example ex)
+  public Prediction predict(Example ex)
   {
-    feedForward(ex);
+    double cost = feedForward(ex);
     double[] output = getOutputLayer().getActivations();
     int iBest = 0;
     for (int i = 1; i < output.length; ++i) {
       if (output[i] > iBest)
         iBest = i;
     }
-    return iBest;
+    return new Prediction(iBest, output, cost);
   }
 
-  public int[] predict(List<Example> examples)
+  public Prediction[] predict(Dataset dataset)
   {
-    int[] preds = new int[examples.size()];
-    for (int i = 0; i < examples.size(); ++i) {
-      preds[i] = predict(examples.get(i));
+    Prediction[] preds = new Prediction[dataset.size()];
+    for (int i = 0; i < dataset.size(); ++i) {
+      preds[i] = predict(dataset.get(i));
     }
     return preds;
   }
