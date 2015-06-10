@@ -1,6 +1,7 @@
 package org.minnen.pedanticnn;
 
 import java.io.BufferedReader;
+
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -44,7 +45,7 @@ public class LearnNN
     }
   }
 
-  public static void evaluate(String prefix, Prediction[] preds, Dataset dataset)
+  public static EvalResult evaluate(Prediction[] preds, Dataset dataset)
   {
     double cost = 0.0;
     int nc = 0;
@@ -56,22 +57,28 @@ public class LearnNN
       }
       cost += preds[i].cost;
     }
-    System.out.printf("%s: Cost=%f   Accuracy: %d / %d = %.2f%%\n", prefix, cost, nc, N, 100.0 * nc / N);
+    return new EvalResult(cost, nc, N);
   }
 
   public static void main(String[] args) throws IOException
   {
-    String trainFile = args[0];
-    Dataset dataset = LoadData(trainFile);
-    System.err.printf("Training example: %d @ %dD -> %dD\n", dataset.size(), dataset.numInputDims,
-        dataset.numOutputDims);
+    Dataset data = LoadData(args[0]);
+    data.shuffleExamples();
+    int numTrain = (int)(data.size() * 0.8);
+    int numTest = data.size() - numTrain;
+    Dataset dataTrain = new Dataset(data, 0, numTrain);
+    Dataset dataTest = new Dataset(data, numTrain, numTest);
+    System.err.printf("Training examples: %d @ %dD -> %dD\n", dataTrain.size(), dataTrain.numInputDims,
+        dataTrain.numOutputDims);
+    System.err.printf("Test examples: %d @ %dD -> %dD\n", dataTest.size(), dataTest.numInputDims,
+        dataTest.numOutputDims);
 
-    NeuralNetwork network = new NeuralNetwork(new int[] { dataset.numInputDims, dataset.numOutputDims },
+    NeuralNetwork network = new NeuralNetwork(new int[] { dataTrain.numInputDims, 10, dataTrain.numOutputDims },
         new CrossEntropyCost());
-    double learningRate = 0.01;
+    double learningRate = 0.1;
+    double lambda = 0.0;
     int batchSize = 200;
     int numEpochs = 1000;
-    network.train(dataset, learningRate, batchSize, numEpochs);
-    evaluate("Final", network.predict(dataset), dataset);
+    network.train(dataTrain, dataTest, learningRate, lambda, batchSize, numEpochs);
   }
 }

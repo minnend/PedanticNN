@@ -69,10 +69,10 @@ public class NeuralLayer
     }
   }
 
-  public void updateParams(double learningRate)
+  public void updateParams(double learningRate, double lambda, int trainSize, int batchSize)
   {
     for (Node node : nodes) {
-      node.updateParams(learningRate);
+      node.updateParams(learningRate, lambda, trainSize, batchSize);
     }
   }
 

@@ -12,7 +12,7 @@ public class Node
 
   public final NeuralLayer      layer;
   public final int              index;
-  public double                 weightedInput, activation, bias;
+  public double                 weightedInput, activation, bias, error;
 
   private double                gradBias;
 
@@ -22,9 +22,9 @@ public class Node
     this.index = index;
   }
 
-  public void connect(Node kid)
+  public void connect(Node kid, double weightScale)
   {
-    Connection c = new Connection(this, kid);
+    Connection c = new Connection(this, kid, weightScale);
     kids.add(c);
     kid.parents.add(c);
   }
@@ -53,21 +53,22 @@ public class Node
     // Our activation is a linear function of parent activations.
     weightedInput = bias;
     for (Connection c : parents) {
-      assert c.kid == this;
       weightedInput += c.weight * c.parent.activation;
     }
     activation = MathUtils.sigmoid(weightedInput);
   }
 
   public void backprop(double expected)
-  {
-    double error;
+  {    
     if (isOutputNode()) {
       CostFunction cf = layer.network.costFunction;
       error = cf.deriv(activation, expected, weightedInput);
     } else {
-      assert false;
-      error = 0.0; // TODO
+      double sum = 0.0;
+      for (Connection c : kids) {
+        sum += c.weight * c.kid.error;
+      }
+      error = sum * MathUtils.sigmoidDeriv(activation);
     }
 
     gradBias += error;
@@ -76,11 +77,12 @@ public class Node
     }
   }
 
-  public void updateParams(double learningRate)
+  public void updateParams(double learningRate, double lambda, int trainSize, int batchSize)
   {
-    bias -= learningRate * gradBias;
+    bias -= learningRate / batchSize * gradBias;
     for (Connection c : parents) {
-      c.weight -= learningRate * c.gradWeight;
+      c.weight = (1.0 - learningRate * lambda / trainSize) * c.weight
+          - learningRate / batchSize * c.gradWeight;
     }
   }
 }

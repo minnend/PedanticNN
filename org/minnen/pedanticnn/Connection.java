@@ -7,11 +7,11 @@ public class Connection
   public double     weight;
   public double     gradWeight;
 
-  public Connection(Node parent, Node kid)
+  public Connection(Node parent, Node kid, double weightScale)
   {
     this.parent = parent;
     this.kid = kid;
-    this.weight = NeuralNetwork.rng.nextGaussian();
+    this.weight = NeuralNetwork.rng.nextGaussian() * weightScale;
   }
 
 }

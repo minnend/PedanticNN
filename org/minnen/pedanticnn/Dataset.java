@@ -10,6 +10,14 @@ public class Dataset
   public final int           numInputDims;
   public final int           numOutputDims;
 
+  public Dataset(Dataset dataset, int index, int numExamples) {
+    for (int i=0; i<numExamples; ++i) {
+      data.add(dataset.get(index + i));
+    }
+    numInputDims = dataset.numInputDims;
+    numOutputDims =  dataset.numOutputDims;
+  }
+  
   public Dataset(List<Integer> labels, List<double[]> inputs, int maxLabel)
   {
     if (labels.size() != inputs.size()) {
