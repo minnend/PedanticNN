@@ -4,12 +4,14 @@ public class NeuralLayer
 {
   private final Node[]       nodes;
   public final int           index;
+  public final boolean       isInputLayer;
   public final boolean       isOutputLayer;
   public final NeuralNetwork network;
 
-  public NeuralLayer(int index, int numNodes, boolean isOutputLayer, NeuralNetwork network)
+  public NeuralLayer(int index, int numNodes, boolean isInputLayer, boolean isOutputLayer, NeuralNetwork network)
   {
     this.index = index;
+    this.isInputLayer = isInputLayer;
     this.isOutputLayer = isOutputLayer;
     nodes = new Node[numNodes];
     for (int i = 0; i < numNodes; ++i) {
@@ -83,7 +85,7 @@ public class NeuralLayer
     }
 
     double cost = 0.0;
-    for (int i = 0; i < size(); ++i) {      
+    for (int i = 0; i < size(); ++i) {
       cost += network.costFunction.f(nodes[i].activation, example.expected[i]);
     }
     return cost;

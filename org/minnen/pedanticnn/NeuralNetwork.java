@@ -16,7 +16,7 @@ public class NeuralNetwork
     this.costFunction = costFunction;
     layers = new NeuralLayer[layerSizes.length];
     for (int i = 0; i < layers.length; ++i) {
-      layers[i] = new NeuralLayer(i, layerSizes[i], i == layers.length - 1, this);
+      layers[i] = new NeuralLayer(i, layerSizes[i], i == 0, i == layers.length - 1, this);
     }
 
     // Create dense connections
@@ -53,7 +53,7 @@ public class NeuralNetwork
   }
 
   public void train(Dataset dataTrain, Dataset dataTest, double learningRate, double lambda, int sizeMiniBatch,
-      int numEpochs)
+      boolean checkGradients, int numEpochs)
   {
     final int N = dataTrain.size();
     int miniBatchIndex = 0;
@@ -65,6 +65,9 @@ public class NeuralNetwork
       resetForLearning();
       for (int i = 0; i < N; ++i) {
         backprop(dataTrain.get(i));
+        if (checkGradients) {
+          checkGradients(dataTrain.get(i));
+        }
         if (i % sizeMiniBatch == sizeMiniBatch - 1 || i == N - 1) {
           updateParams(learningRate, lambda, N, sizeMiniBatch);
           EvalResult evalTrain = LearnNN.evaluate(predict(dataTrain), dataTrain);
@@ -77,6 +80,105 @@ public class NeuralNetwork
       }
       miniBatchIndex = 0;
     }
+  }
+
+  private void checkGradients(Example example)
+  {
+    int numBad = 0;
+    for (NeuralLayer layer : layers) {
+      if (layer.isInputLayer) { // no bias terms & no parent connections
+        continue;
+      }
+      for (int i = 0; i < layer.size(); ++i) {
+        Node node = layer.node(i);
+        if (!checkGradientForBias(node, example)) {
+          ++numBad;
+        }
+
+        /*for (Connection c : node.parents) {
+          if (!checkGradientForWeight(c, example)) {
+            ++numBad;
+          }
+        }*/
+      }
+    }
+
+    if (numBad > 0) {
+      throw new ArithmeticException(String.format("Analytic derivative does not match"
+          + " finite difference estimate (%d issues)", numBad));
+    }
+  }
+
+  private boolean checkGradientForBias(Node node, Example example)
+  {
+    double delta = 1e-6;
+    double eps = 0.001;
+
+    double bias = node.bias;
+
+    // Backward calculation: x - delta.
+    node.bias -= delta;
+    double backwardCost = feedForward(example);
+
+    // Forward calculation: x + delta.
+    node.bias = bias + delta;
+    double forwardCost = feedForward(example);
+
+    // Set bias back to original value.
+    node.bias = bias;
+
+    // Accumulate finite difference.
+    node.fdBias += (forwardCost - backwardCost) / (2.0 * delta);
+
+    // Verify gradients match.
+    double sumAbs = Math.abs(node.gradBias) + Math.abs(node.fdBias);
+    if (sumAbs > 1e-9) { // if sum is zero, we know we're ok and want to avoid div by zero
+      double absError = Math.abs(node.gradBias - node.fdBias);
+      double relError = absError / sumAbs;
+      if (relError > eps) {
+        System.err.printf("%d.%d: %f vs %f  (absE=%f, relE=%f)\n", node.layer.index, node.index, node.gradBias,
+            node.fdBias, absError, relError);
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private boolean checkGradientForWeight(Connection c, Example example)
+  {
+    double delta = 1e-6;
+    double eps = 0.001;
+
+    double weight = c.weight;
+
+    // Backward calculation: x - delta.
+    c.weight -= delta;
+    double backwardCost = feedForward(example);
+
+    // Forward calculation: x + delta.
+    c.weight = weight + delta;
+    double forwardCost = feedForward(example);
+
+    // Set weight back to original value.
+    c.weight = weight;
+
+    // Accumulate finite difference.
+    c.fdWeight += (forwardCost - backwardCost) / (2.0 * delta);
+
+    // Verify gradients match.
+    double sumAbs = Math.abs(c.gradWeight) + Math.abs(c.fdWeight);
+    if (sumAbs > 1e-9) { // if sum is zero, we know we're ok and want to avoid div by zero
+      double absError = Math.abs(c.gradWeight - c.fdWeight);
+      double relError = absError / sumAbs;
+      if (relError > eps) {
+        System.err.printf("[%d.%d - %d.%d]: %f vs %f  (absE=%f, relE=%f)\n", c.parent.layer.index, c.parent.index,
+            c.kid.layer.index, c.kid.index, c.gradWeight, c.fdWeight, absError, relError);
+        return false;
+      }
+    }
+
+    return true;
   }
 
   private void resetForLearning()

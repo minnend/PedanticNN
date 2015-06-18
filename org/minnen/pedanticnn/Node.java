@@ -14,7 +14,8 @@ public class Node
   public final int              index;
   public double                 weightedInput, activation, bias, error;
 
-  private double                gradBias;
+  public double                 gradBias;                              // grad for bias via backprop
+  public double                 fdBias;                                // grad for bias via finite difference
 
   public Node(NeuralLayer layer, int index)
   {
@@ -37,9 +38,16 @@ public class Node
   public void resetForLearning()
   {
     gradBias = 0.0;
+    fdBias = 0.0;
     for (Connection c : parents) {
       c.gradWeight = 0.0;
+      c.fdWeight = 0.0;
     }
+  }
+
+  public boolean isInputNode()
+  {
+    return layer.isInputLayer;
   }
 
   public boolean isOutputNode()
@@ -50,16 +58,16 @@ public class Node
   /** Calculate activation from parents. */
   public void feedForward()
   {
-    // Our activation is a linear function of parent activations.
+    // Activation is a linear function of parent activations.
     weightedInput = bias;
     for (Connection c : parents) {
       weightedInput += c.weight * c.parent.activation;
     }
-    activation = MathUtils.sigmoid(weightedInput);
+    activation = MathUtils.sigmoid(weightedInput);  // TODO support other activation functions
   }
 
   public void backprop(double expected)
-  {    
+  {
     if (isOutputNode()) {
       CostFunction cf = layer.network.costFunction;
       error = cf.deriv(activation, expected, weightedInput);
@@ -81,8 +89,7 @@ public class Node
   {
     bias -= learningRate / batchSize * gradBias;
     for (Connection c : parents) {
-      c.weight = (1.0 - learningRate * lambda / trainSize) * c.weight
-          - learningRate / batchSize * c.gradWeight;
+      c.weight = (1.0 - learningRate * lambda / trainSize) * c.weight - learningRate / batchSize * c.gradWeight;
     }
   }
 }

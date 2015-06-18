@@ -64,21 +64,22 @@ public class LearnNN
   {
     Dataset data = LoadData(args[0]);
     data.shuffleExamples();
-    int numTrain = (int)(data.size() * 0.8);
+    int numTrain = (int) (data.size() * 0.8);
     int numTest = data.size() - numTrain;
     Dataset dataTrain = new Dataset(data, 0, numTrain);
     Dataset dataTest = new Dataset(data, numTrain, numTest);
-    System.err.printf("Training examples: %d @ %dD -> %dD\n", dataTrain.size(), dataTrain.numInputDims,
+    System.out.printf("Training examples: %d @ %dD -> %dD\n", dataTrain.size(), dataTrain.numInputDims,
         dataTrain.numOutputDims);
-    System.err.printf("Test examples: %d @ %dD -> %dD\n", dataTest.size(), dataTest.numInputDims,
+    System.out.printf("Test examples: %d @ %dD -> %dD\n", dataTest.size(), dataTest.numInputDims,
         dataTest.numOutputDims);
 
     NeuralNetwork network = new NeuralNetwork(new int[] { dataTrain.numInputDims, 10, dataTrain.numOutputDims },
         new CrossEntropyCost());
     double learningRate = 0.1;
     double lambda = 0.0;
-    int batchSize = 200;
+    int batchSize = 1;
+    boolean checkGradients = true;
     int numEpochs = 1000;
-    network.train(dataTrain, dataTest, learningRate, lambda, batchSize, numEpochs);
+    network.train(dataTrain, dataTest, learningRate, lambda, batchSize, checkGradients, numEpochs);
   }
 }

@@ -6,6 +6,7 @@ public class Connection
 
   public double     weight;
   public double     gradWeight;
+  public double     fdWeight;  
 
   public Connection(Node parent, Node kid, double weightScale)
   {
