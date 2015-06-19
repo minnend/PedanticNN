@@ -12,7 +12,10 @@ public class Node {
   public final NeuralLayer layer;
   public final int index;
 
-  public double weightedInput, activation, bias, error;
+  public double bias;
+  public double weightedInput; // z = w*x+b
+  public double activation; // sig(z)
+  public double dz; // partial derivatice of cost wrt z
 
   public double gradBias; // grad for bias via backprop
   public double fdBias; // grad for bias via finite difference
@@ -62,18 +65,19 @@ public class Node {
   public void backprop(double expected) {
     if (isOutputNode()) {
       CostFunction cf = layer.network.costFunction;
-      error = cf.deriv(activation, expected, weightedInput);
+      double da = cf.deriv(activation, expected);
+      dz = da * MathUtils.sigmoidDeriv(weightedInput); // TODO support other activation functions
     } else {
       double sum = 0.0;
       for (Connection c : kids) {
-        sum += c.weight * c.kid.error;
+        sum += c.weight * c.kid.dz;
       }
-      error = sum * MathUtils.sigmoidDeriv(activation);
+      dz = sum * MathUtils.sigmoidDeriv(weightedInput);
     }
 
-    gradBias += error;
+    gradBias -= dz;
     for (Connection c : parents) {
-      c.gradWeight += c.parent.activation * error;
+      c.gradWeight -= c.parent.activation * dz;
     }
   }
 
@@ -92,7 +96,8 @@ public class Node {
 
   @Override
   public String toString() {
-    return String.format("[Node %s: b=%.3f  grad=%.5f (%.5f) (input=%.5f, a=%.6f)  Connections: %d/%d]",
-        name(), bias, gradBias, fdBias, weightedInput, activation, parents.size(), kids.size());
+    return String.format(
+        "[Node %s: b=%.3f  grad=%.5f (%.5f) (input=%.5f, a=%.6f)  Connections: %d/%d]", name(),
+        bias, gradBias, fdBias, weightedInput, activation, parents.size(), kids.size());
   }
 }

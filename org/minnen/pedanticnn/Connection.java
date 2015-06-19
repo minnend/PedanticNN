@@ -12,8 +12,7 @@ public class Connection
   {
     this.parent = parent;
     this.kid = kid;
-    // this.weight = NeuralNetwork.rng.nextGaussian() * weightScale; TODO
-    this.weight = (parent.layer.index + parent.index + kid.index) * 0.1 + 0.1;
+    this.weight = NeuralNetwork.rng.nextGaussian() * weightScale;
   }
   
   public String name() {

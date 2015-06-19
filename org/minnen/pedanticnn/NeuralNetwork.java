@@ -55,7 +55,7 @@ public class NeuralNetwork {
     int miniBatchIndex = 0;
     for (int epoch = 0; epoch < numEpochs; ++epoch) {
       // Randomize training data.
-      // dataTrain.shuffleExamples(); TODO
+      dataTrain.shuffleExamples();
 
       // Run mini-batches.
       resetForLearning();
@@ -99,9 +99,6 @@ public class NeuralNetwork {
       }
     }
 
-    System.out.println("After Back-Propagation:");
-    System.out.println(dumpNetwork());
-
     if (numBad > 0) {
       throw new ArithmeticException(String.format(
           "Analytic derivative does not match"
@@ -132,7 +129,7 @@ public class NeuralNetwork {
 
     // Verify gradients match.
     double sumAbs = Math.abs(node.gradBias) + Math.abs(node.fdBias);
-    if (sumAbs > 1e-9) { // if sum is zero, we know we're ok and want to avoid div by zero
+    if (sumAbs > 1e-6) { // if sum is zero, we know we're ok and want to avoid div by zero
       double absError = Math.abs(node.gradBias - node.fdBias);
       double relError = absError / sumAbs;
       if (relError > eps) {
@@ -167,12 +164,12 @@ public class NeuralNetwork {
 
     // Verify gradients match.
     double sumAbs = Math.abs(c.gradWeight) + Math.abs(c.fdWeight);
-    if (sumAbs > 1e-9) { // if sum is zero, we know we're ok and want to avoid div by zero
+    if (sumAbs > 1e-6) { // if sum is zero, we know we're ok and want to avoid div by zero
       double absError = Math.abs(c.gradWeight - c.fdWeight);
       double relError = absError / sumAbs;
       if (relError > eps) {
-        System.err.printf("[%s]: %f vs %f  (absE=%f, relE=%f)\n", c.name(), c.gradWeight,
-            c.fdWeight, absError, relError);
+        System.err.printf("[%s]: %f vs %f  (absE=%f, relE=%f)  sumAbs=%f\n", c.name(), c.gradWeight,
+            c.fdWeight, absError, relError, sumAbs);
         return false;
       }
     }
@@ -189,8 +186,6 @@ public class NeuralNetwork {
   private void backprop(Example example) {
     // Push example through network.
     feedForward(example);
-    System.out.println("After Feed-Forward:");
-    System.out.println(dumpNetwork());
 
     // Update each layer starting with the output.
     for (int l = layers.length - 1; l > 0; --l) {

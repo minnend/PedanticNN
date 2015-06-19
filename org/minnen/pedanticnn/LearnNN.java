@@ -9,7 +9,6 @@ import java.util.List;
 
 import org.minnen.pedanticnn.cost.CostFunction;
 import org.minnen.pedanticnn.cost.CrossEntropyCost;
-import org.minnen.pedanticnn.cost.SquaredErrorCost;
 
 public class LearnNN {
   private static Dataset LoadData(String filename) throws IOException {
@@ -44,12 +43,12 @@ public class LearnNN {
     }
   }
 
-  private static Dataset LoadToyData() {    
+  private static Dataset LoadToyData() {
     List<Integer> labels = new ArrayList<>();
     List<double[]> inputs = new ArrayList<>();
 
-    inputs.add(new double[] {3, 0});
     inputs.add(new double[] {3, 2});
+    inputs.add(new double[] {3, 0});
     inputs.add(new double[] {0, 2});
     inputs.add(new double[] {-1, 0});
     inputs.add(new double[] {-1, -2});
@@ -78,9 +77,8 @@ public class LearnNN {
   }
 
   public static void main(String[] args) throws IOException {
-    // Dataset data = LoadData(args[0]);
-    Dataset data = LoadToyData();
-    //data.shuffleExamples(); TODO
+    Dataset data = LoadData(args[0]);
+    data.shuffleExamples();
     int numTrain = (int) (data.size() * 0.8);
     int numTest = data.size() - numTrain;
     Dataset dataTrain = new Dataset(data, 0, numTrain);
@@ -92,14 +90,14 @@ public class LearnNN {
 
     CostFunction costFunc = new CrossEntropyCost();
     NeuralNetwork network =
-        new NeuralNetwork(new int[] {dataTrain.numInputDims, 1, dataTrain.numOutputDims}, costFunc);
+        new NeuralNetwork(new int[] {dataTrain.numInputDims, dataTrain.numOutputDims}, costFunc);
     System.out.println(network);
-    System.out.println(network.dumpNetwork());
+
     double learningRate = 0.1;
     double lambda = 0.0;
-    int batchSize = 1;
-    boolean checkGradients = true;
-    int numEpochs = 2;
+    int batchSize = 100;
+    boolean checkGradients = false;
+    int numEpochs = 1000;
     network.train(dataTrain, dataTest, learningRate, lambda, batchSize, checkGradients, numEpochs);
   }
 }
