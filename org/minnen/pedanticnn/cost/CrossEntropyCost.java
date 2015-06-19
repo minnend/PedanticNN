@@ -4,16 +4,16 @@ public class CrossEntropyCost implements CostFunction
 {
 
   @Override
-  public double f(double x, double y)
+  public double f(double a, double y)
   {
-    double v = -y * Math.log(x) - (1.0 - y) * Math.log(1.0 - x);
+    double v = -y * Math.log(a) - (1.0 - y) * Math.log(1.0 - a);
     return Double.isNaN(v) ? 0.0 : v;
   }
 
   @Override
-  public double deriv(double x, double y, double z)
+  public double deriv(double a, double y, double z)
   {
-    return x - y;
+    return a - y;
   }
 
 }

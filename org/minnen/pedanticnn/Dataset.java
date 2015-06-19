@@ -10,9 +10,15 @@ public class Dataset
   public final int           numInputDims;
   public final int           numOutputDims;
 
-  public Dataset(Dataset dataset, int index, int numExamples) {
+  /**
+   * Create a new dataset by copying a subset of an existing one.
+   * @param dataset existing dataset that holds examples and labels
+   * @param startIndex index of first example to copy
+   * @param numExamples number of examples to copy
+   */
+  public Dataset(Dataset dataset, int startIndex, int numExamples) {
     for (int i=0; i<numExamples; ++i) {
-      data.add(dataset.get(index + i));
+      data.add(dataset.get(startIndex + i));
     }
     numInputDims = dataset.numInputDims;
     numOutputDims =  dataset.numOutputDims;

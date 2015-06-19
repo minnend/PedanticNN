@@ -7,13 +7,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.minnen.pedanticnn.cost.CostFunction;
 import org.minnen.pedanticnn.cost.CrossEntropyCost;
 import org.minnen.pedanticnn.cost.SquaredErrorCost;
 
-public class LearnNN
-{
-  private static Dataset LoadData(String filename) throws IOException
-  {
+public class LearnNN {
+  private static Dataset LoadData(String filename) throws IOException {
     try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
       reader.readLine(); // skip header
 
@@ -45,8 +44,26 @@ public class LearnNN
     }
   }
 
-  public static EvalResult evaluate(Prediction[] preds, Dataset dataset)
-  {
+  private static Dataset LoadToyData() {    
+    List<Integer> labels = new ArrayList<>();
+    List<double[]> inputs = new ArrayList<>();
+
+    inputs.add(new double[] {3, 0});
+    inputs.add(new double[] {3, 2});
+    inputs.add(new double[] {0, 2});
+    inputs.add(new double[] {-1, 0});
+    inputs.add(new double[] {-1, -2});
+
+    labels.add(1);
+    labels.add(1);
+    labels.add(0);
+    labels.add(0);
+    labels.add(0);
+
+    return new Dataset(labels, inputs, 1);
+  }
+
+  public static EvalResult evaluate(Prediction[] preds, Dataset dataset) {
     double cost = 0.0;
     int nc = 0;
     final int N = dataset.size();
@@ -60,26 +77,29 @@ public class LearnNN
     return new EvalResult(cost, nc, N);
   }
 
-  public static void main(String[] args) throws IOException
-  {
-    Dataset data = LoadData(args[0]);
-    data.shuffleExamples();
+  public static void main(String[] args) throws IOException {
+    // Dataset data = LoadData(args[0]);
+    Dataset data = LoadToyData();
+    //data.shuffleExamples(); TODO
     int numTrain = (int) (data.size() * 0.8);
     int numTest = data.size() - numTrain;
     Dataset dataTrain = new Dataset(data, 0, numTrain);
     Dataset dataTest = new Dataset(data, numTrain, numTest);
-    System.out.printf("Training examples: %d @ %dD -> %dD\n", dataTrain.size(), dataTrain.numInputDims,
-        dataTrain.numOutputDims);
+    System.out.printf("Training examples: %d @ %dD -> %dD\n", dataTrain.size(),
+        dataTrain.numInputDims, dataTrain.numOutputDims);
     System.out.printf("Test examples: %d @ %dD -> %dD\n", dataTest.size(), dataTest.numInputDims,
         dataTest.numOutputDims);
 
-    NeuralNetwork network = new NeuralNetwork(new int[] { dataTrain.numInputDims, 10, dataTrain.numOutputDims },
-        new CrossEntropyCost());
+    CostFunction costFunc = new CrossEntropyCost();
+    NeuralNetwork network =
+        new NeuralNetwork(new int[] {dataTrain.numInputDims, 1, dataTrain.numOutputDims}, costFunc);
+    System.out.println(network);
+    System.out.println(network.dumpNetwork());
     double learningRate = 0.1;
     double lambda = 0.0;
     int batchSize = 1;
     boolean checkGradients = true;
-    int numEpochs = 1000;
+    int numEpochs = 2;
     network.train(dataTrain, dataTest, learningRate, lambda, batchSize, checkGradients, numEpochs);
   }
 }

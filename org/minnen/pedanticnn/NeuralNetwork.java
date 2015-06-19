@@ -4,19 +4,19 @@ import java.util.Random;
 
 import org.minnen.pedanticnn.cost.CostFunction;
 
-public class NeuralNetwork
-{
+public class NeuralNetwork {
   public static final Random rng = new Random();
 
   public final NeuralLayer[] layers;
-  public CostFunction        costFunction;
+  public CostFunction costFunction;
 
-  public NeuralNetwork(int[] layerSizes, CostFunction costFunction)
-  {
+  public NeuralNetwork(int[] layerSizes, CostFunction costFunction) {
     this.costFunction = costFunction;
     layers = new NeuralLayer[layerSizes.length];
     for (int i = 0; i < layers.length; ++i) {
-      layers[i] = new NeuralLayer(i, layerSizes[i], i == 0, i == layers.length - 1, this);
+      boolean isInputLayer = (i == 0);
+      boolean isOutputLayer = (i == layers.length - 1);
+      layers[i] = new NeuralLayer(i, layerSizes[i], isInputLayer, isOutputLayer, this);
     }
 
     // Create dense connections
@@ -32,18 +32,15 @@ public class NeuralNetwork
     }
   }
 
-  public NeuralLayer getInputLayer()
-  {
+  public NeuralLayer getInputLayer() {
     return layers[0];
   }
 
-  public NeuralLayer getOutputLayer()
-  {
+  public NeuralLayer getOutputLayer() {
     return layers[layers.length - 1];
   }
 
-  public double[] getOutput()
-  {
+  public double[] getOutput() {
     NeuralLayer outputLayer = getOutputLayer();
     double[] output = new double[outputLayer.size()];
     for (int i = 0; i < output.length; ++i) {
@@ -52,14 +49,13 @@ public class NeuralNetwork
     return output;
   }
 
-  public void train(Dataset dataTrain, Dataset dataTest, double learningRate, double lambda, int sizeMiniBatch,
-      boolean checkGradients, int numEpochs)
-  {
+  public void train(Dataset dataTrain, Dataset dataTest, double learningRate, double lambda,
+      int sizeMiniBatch, boolean checkGradients, int numEpochs) {
     final int N = dataTrain.size();
     int miniBatchIndex = 0;
     for (int epoch = 0; epoch < numEpochs; ++epoch) {
       // Randomize training data.
-      dataTrain.shuffleExamples();
+      // dataTrain.shuffleExamples(); TODO
 
       // Run mini-batches.
       resetForLearning();
@@ -72,8 +68,8 @@ public class NeuralNetwork
           updateParams(learningRate, lambda, N, sizeMiniBatch);
           EvalResult evalTrain = LearnNN.evaluate(predict(dataTrain), dataTrain);
           EvalResult evalTest = LearnNN.evaluate(predict(dataTest), dataTest);
-          System.out.printf("%d.%d: Cost=%f   Accuracy: %.2f%%, %.2f%%\n", epoch + 1, miniBatchIndex, evalTrain.cost,
-              evalTrain.accuracy(), evalTest.accuracy());
+          System.out.printf("%d.%d: Cost=%f   Accuracy: %.2f%%, %.2f%%\n", epoch + 1,
+              miniBatchIndex, evalTrain.cost, evalTrain.accuracy(), evalTest.accuracy());
           resetForLearning();
           ++miniBatchIndex;
         }
@@ -82,8 +78,8 @@ public class NeuralNetwork
     }
   }
 
-  private void checkGradients(Example example)
-  {
+  private void checkGradients(Example example) {
+    System.out.println("Check gradients: " + example);
     int numBad = 0;
     for (NeuralLayer layer : layers) {
       if (layer.isInputLayer) { // no bias terms & no parent connections
@@ -95,22 +91,26 @@ public class NeuralNetwork
           ++numBad;
         }
 
-        /*for (Connection c : node.parents) {
+        for (Connection c : node.parents) {
           if (!checkGradientForWeight(c, example)) {
             ++numBad;
           }
-        }*/
+        }
       }
     }
 
+    System.out.println("After Back-Propagation:");
+    System.out.println(dumpNetwork());
+
     if (numBad > 0) {
-      throw new ArithmeticException(String.format("Analytic derivative does not match"
-          + " finite difference estimate (%d issues)", numBad));
+      throw new ArithmeticException(String.format(
+          "Analytic derivative does not match"
+          + " finite difference estimate (%d issues)",
+          numBad));
     }
   }
 
-  private boolean checkGradientForBias(Node node, Example example)
-  {
+  private boolean checkGradientForBias(Node node, Example example) {
     double delta = 1e-6;
     double eps = 0.001;
 
@@ -136,7 +136,7 @@ public class NeuralNetwork
       double absError = Math.abs(node.gradBias - node.fdBias);
       double relError = absError / sumAbs;
       if (relError > eps) {
-        System.err.printf("%d.%d: %f vs %f  (absE=%f, relE=%f)\n", node.layer.index, node.index, node.gradBias,
+        System.err.printf("%s: %f vs %f  (absE=%f, relE=%f)\n", node.name(), node.gradBias,
             node.fdBias, absError, relError);
         return false;
       }
@@ -145,8 +145,7 @@ public class NeuralNetwork
     return true;
   }
 
-  private boolean checkGradientForWeight(Connection c, Example example)
-  {
+  private boolean checkGradientForWeight(Connection c, Example example) {
     double delta = 1e-6;
     double eps = 0.001;
 
@@ -172,8 +171,8 @@ public class NeuralNetwork
       double absError = Math.abs(c.gradWeight - c.fdWeight);
       double relError = absError / sumAbs;
       if (relError > eps) {
-        System.err.printf("[%d.%d - %d.%d]: %f vs %f  (absE=%f, relE=%f)\n", c.parent.layer.index, c.parent.index,
-            c.kid.layer.index, c.kid.index, c.gradWeight, c.fdWeight, absError, relError);
+        System.err.printf("[%s]: %f vs %f  (absE=%f, relE=%f)\n", c.name(), c.gradWeight,
+            c.fdWeight, absError, relError);
         return false;
       }
     }
@@ -181,17 +180,17 @@ public class NeuralNetwork
     return true;
   }
 
-  private void resetForLearning()
-  {
+  private void resetForLearning() {
     for (NeuralLayer layer : layers) {
       layer.resetForLearning();
     }
   }
 
-  private void backprop(Example example)
-  {
+  private void backprop(Example example) {
     // Push example through network.
     feedForward(example);
+    System.out.println("After Feed-Forward:");
+    System.out.println(dumpNetwork());
 
     // Update each layer starting with the output.
     for (int l = layers.length - 1; l > 0; --l) {
@@ -199,15 +198,13 @@ public class NeuralNetwork
     }
   }
 
-  private void updateParams(double learningRate, double lambda, int trainSize, int batchSize)
-  {
+  private void updateParams(double learningRate, double lambda, int trainSize, int batchSize) {
     for (NeuralLayer layer : layers) {
       layer.updateParams(learningRate, lambda, trainSize, batchSize);
     }
   }
 
-  public double feedForward(Example example)
-  {
+  public double feedForward(Example example) {
     // Initialize input layer.
     layers[0].setActivations(example.data);
 
@@ -219,8 +216,7 @@ public class NeuralNetwork
     return getOutputLayer().getCost(example);
   }
 
-  public Prediction predict(Example ex)
-  {
+  public Prediction predict(Example ex) {
     double cost = feedForward(ex);
     double[] output = getOutputLayer().getActivations();
     int iBest = 0;
@@ -232,12 +228,40 @@ public class NeuralNetwork
     return new Prediction(iBest, output, cost);
   }
 
-  public Prediction[] predict(Dataset dataset)
-  {
+  public Prediction[] predict(Dataset dataset) {
     Prediction[] preds = new Prediction[dataset.size()];
     for (int i = 0; i < dataset.size(); ++i) {
       preds[i] = predict(dataset.get(i));
     }
     return preds;
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    for (int i = 0; i < layers.length; ++i) {
+      sb.append(String.format("%d", layers[i].size()));
+      if (i < layers.length - 1) {
+        sb.append(",");
+      }
+    }
+    return String.format("[NN: %s]", sb.toString());
+  }
+
+  public String dumpNetwork() {
+    StringBuilder sb = new StringBuilder();
+
+    for (int layerIndex = 0; layerIndex < layers.length; ++layerIndex) {
+      NeuralLayer layer = layers[layerIndex];
+      for (int nodeIndex = 0; nodeIndex < layer.size(); ++nodeIndex) {
+        Node node = layer.node(nodeIndex);
+        System.out.println(node);
+        for (Connection c : node.kids) {
+          System.out.println(" " + c);
+        }
+      }
+    }
+
+    return sb.toString();
   }
 }
