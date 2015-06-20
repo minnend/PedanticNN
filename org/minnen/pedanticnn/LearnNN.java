@@ -78,6 +78,11 @@ public class LearnNN {
 
   public static void main(String[] args) throws IOException {
     Dataset data = LoadData(args[0]);
+    data.zeroMean();
+    data.unitVariance();
+    System.out.printf("Mean: %f\n", MathUtils.l1norm(data.mean()));
+    System.out.printf("Variance: %f\n", MathUtils.l1norm(data.variance()));
+
     data.shuffleExamples();
     int numTrain = (int) (data.size() * 0.8);
     int numTest = data.size() - numTrain;
@@ -89,13 +94,13 @@ public class LearnNN {
         dataTest.numOutputDims);
 
     CostFunction costFunc = new CrossEntropyCost();
-    NeuralNetwork network =
-        new NeuralNetwork(new int[] {dataTrain.numInputDims, dataTrain.numOutputDims}, costFunc);
+    NeuralNetwork network = new NeuralNetwork(
+        new int[] {dataTrain.numInputDims, 10, dataTrain.numOutputDims}, costFunc);
     System.out.println(network);
 
-    double learningRate = 0.1;
+    double learningRate = 0.2;
     double lambda = 0.0;
-    int batchSize = 100;
+    int batchSize = 50;
     boolean checkGradients = false;
     int numEpochs = 1000;
     network.train(dataTrain, dataTest, learningRate, lambda, batchSize, checkGradients, numEpochs);
